@@ -75,6 +75,20 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
       />
+
+      <Tabs.Screen
+        name="Profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <MaterialCommunityIcons
+              size={28}
+              name="account-circle"
+              color={focused ? 'white' : 'black'} 
+            />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

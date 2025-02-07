@@ -25,7 +25,7 @@ export default function Login() {
       console.log(data)
       console.log(StorageToken)
       Alert.alert('Success', 'Logged in successfully!');
-      navigation.navigate('(tabs)'); 
+      navigation.navigate('(tabs)');
     } catch (error: any) {
       Alert.alert('Error', error.message);
     }
