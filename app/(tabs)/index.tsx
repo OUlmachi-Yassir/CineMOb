@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, FlatList, Image, TouchableOpacity, Text, ScrollView, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -43,30 +43,71 @@ const HomePage = () => {
     </TouchableOpacity>
   );
 
+  const filterByGenre = (genre: string) => {
+    return films.filter(film => film.genre === genre);
+  };
+
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={films}
-        renderItem={renderFilm}
-        keyExtractor={(item) => item._id}
-        numColumns={2} // Affichage en grille
-      />
-    </View>
+    <ScrollView style={styles.container}>
+      {/* Carousel of first 4 films */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {films.slice(0, 4).map((film) => (
+          <TouchableOpacity key={film._id} onPress={() => navigation.navigate('FilmDetails', { film })}>
+            <Image source={{ uri: `http://localhost:3000/${film.image}` }} style={styles.carouselImage} />
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Genres */}
+      {['Horror', 'Romantic', 'science-fiction', 'Action'].map((genre) => (
+        <View key={genre} style={styles.genreSection}>
+          <Text style={styles.genreTitle}>{genre}</Text>
+          <FlatList
+            data={filterByGenre(genre)}
+            renderItem={renderFilm}
+            keyExtractor={(item) => item._id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          />
+        </View>
+      ))}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafd',
+    backgroundColor: '#000000', 
     paddingTop: 20,
     paddingHorizontal: 10,
+  },
+  carouselImage: {
+    width: 150,
+    height: 200,
+    margin: 10,
+    borderRadius: 8,
+   
   },
   image: {
     width: 150,
     height: 200,
     margin: 10,
     borderRadius: 8,
+    shadowColor: 'red',
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 1, 
+    shadowRadius: 10, 
+    elevation: 10, //
+  },
+  genreSection: {
+    marginVertical: 20,
+  },
+  genreTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#ffffff',
   },
 });
 

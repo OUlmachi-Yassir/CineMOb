@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RootStackParamList } from './types';
+import  RootStackParamList  from './types';
 
 export default function Login() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
