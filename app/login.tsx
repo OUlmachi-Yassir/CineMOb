@@ -11,7 +11,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/auth/login', {
+      const response = await fetch('http://192.168.1.9:3000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -19,8 +19,11 @@ export default function Login() {
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
-
       await AsyncStorage.setItem('token', data.token);
+      await AsyncStorage.setItem('userId', data._id.toString());
+      const StorageToken =AsyncStorage.getItem('userId')
+      console.log(data)
+      console.log(StorageToken)
       Alert.alert('Success', 'Logged in successfully!');
       navigation.navigate('(tabs)'); 
     } catch (error: any) {

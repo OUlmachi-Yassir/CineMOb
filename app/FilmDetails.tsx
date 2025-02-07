@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, TextInput, FlatList, Button } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, TextInput, FlatList, Button, Alert } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import Video from 'react-native-video';  
-import axios from 'axios'; 
+import axios from 'axios';
+import { ScrollView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Film {
   _id: string;
@@ -26,7 +27,7 @@ type RootStackParamList = {
   FilmDetails: { film: Film };
 };
 
-const { width } = Dimensions.get('window'); 
+const { width } = Dimensions.get('window');
 
 const FilmDetailsScreen = () => {
   const route = useRoute<RouteProp<RootStackParamList, 'FilmDetails'>>();
@@ -34,55 +35,143 @@ const FilmDetailsScreen = () => {
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchComments();
+    getUserId();
+    checkIfFavorite(); 
   }, []);
+
+  const getUserId = async () => {
+    try {
+      const storedUserId = await AsyncStorage.getItem('userId');
+      console.log('Retrieved User ID:', storedUserId);
+      setUserId(storedUserId);
+    } catch (error) {
+      console.error('Error retrieving user ID:', error);
+    }
+  };
 
   const fetchComments = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/comments/${film._id}`);
+      const response = await axios.get(`http://192.168.1.9:3000/api/comments/${film._id}`);
       setComments(response.data);
     } catch (error) {
       console.error('Error fetching comments:', error);
     }
   };
 
-  const handleAddComment = async () => {
-    if (!newComment.trim()) return;
+  const checkIfFavorite = async () => {
+    try {
+      if (!userId) return;
+      const response = await axios.get(
+        `http://192.168.1.9:3000/api/favorite/${film._id}/${userId}`
+      );
+      setIsFavorite(response.data.isFavorite);
+      console.log(response.data.isFavorite);
+    } catch (error) {
+      console.error('Error checking favorite status:', error);
+    }
+  };
+
+  const handleAddFavorite = async () => {
+    if (!userId) {
+      Alert.alert('Erreur', 'Vous devez être connecté pour ajouter aux favoris.');
+      return;
+    }
 
     try {
       const response = await axios.post(
-        'http://localhost:3000/api/comments/',
-        { text: newComment, filmId: film._id },
-        { headers: { Authorization: `Bearer TOKEN_HERE` } } 
+        'http://192.168.1.9:3000/api/favorite/add',
+        { filmId: film._id, userId },
       );
 
-      setComments([response.data, ...comments]); 
-      setNewComment(''); 
+      if (response.status === 201) {
+        setIsFavorite(true);
+      }
+    } catch (error) {
+      console.error('Error adding to favorites:', error);
+    }
+  };
+
+  const handleRemoveFavorite = async () => {
+    if (!userId) return;
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.delete(
+        `http://192.168.1.9:3000/api/favorite/${film._id}/${userId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (response.status === 200) {
+        setIsFavorite(false);
+      }
+    } catch (error) {
+      console.error('Error removing from favorites:', error);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!userId) {
+      Alert.alert('Erreur', 'Vous devez être connecté pour commenter.');
+      return;
+    }
+
+    if (!newComment.trim()) {
+      Alert.alert('Erreur', 'Le commentaire ne peut pas être vide.');
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.post(
+        'http://192.168.1.9:3000/api/comments/',
+        { text: newComment, filmId: film._id, userId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setComments([response.data, ...comments]);
+      setNewComment('');
     } catch (error) {
       console.error('Error adding comment:', error);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={{ uri: `http://localhost:3000/${film.image}` }} style={styles.image} />
+    <ScrollView style={styles.container}>
+      <Image source={{ uri: `http://192.168.1.9:3000/${film.image}` }} style={styles.image} />
       <Text style={styles.title}>{film.title}</Text>
-      <Text style={styles.director}>Director: {film.director}</Text>
-      <Text style={styles.releaseYear}>Year: {film.releaseYear}</Text>
+      <Text style={styles.director}>Réalisateur: {film.director}</Text>
+      <Text style={styles.releaseYear}>Année: {film.releaseYear}</Text>
       <Text style={styles.genre}>Genre: {film.genre}</Text>
 
-      <TouchableOpacity style={styles.favoriteButton}>
-        <Icon name="heart" size={30} color="#FF0000" />
+      {/* Favoris Button */}
+      <TouchableOpacity
+        style={styles.favoriteButton}
+        onPress={isFavorite ? handleRemoveFavorite : handleAddFavorite}
+      >
+        <Icon name="heart" size={30} color={isFavorite ? '#FF0000' : '#fff'} />
       </TouchableOpacity>
 
-      {/* Section Vidéo */}
-      
-
-      {/* Section Commentaires */}
+      {/* Comments Section */}
       <View style={styles.commentSection}>
         <Text style={styles.commentTitle}>Commentaires</Text>
+        <View style={styles.commentInputContainer}>
+          <TextInput
+            style={styles.commentInput}
+            placeholder="Ajouter un commentaire..."
+            placeholderTextColor="#aaa"
+            value={newComment}
+            onChangeText={setNewComment}
+          />
+          <Button title="Envoyer" onPress={handleAddComment} color="red" />
+        </View>
 
         <FlatList
           data={comments}
@@ -94,20 +183,8 @@ const FilmDetailsScreen = () => {
             </View>
           )}
         />
-
-        {/* Formulaire d'ajout de commentaire */}
-        <View style={styles.commentInputContainer}>
-          <TextInput
-            style={styles.commentInput}
-            placeholder="Ajouter un commentaire..."
-            placeholderTextColor="#aaa"
-            value={newComment}
-            onChangeText={setNewComment}
-          />
-          <Button title="Envoyer" onPress={handleAddComment} color="#4CAF50" />
-        </View>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -150,12 +227,6 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 1,
   },
-  videoPlayer: {
-    width: width - 40,
-    height: 250,
-    borderRadius: 8,
-    marginTop: 20,
-  },
   commentSection: {
     marginTop: 20,
     backgroundColor: '#1E1E1E',
@@ -168,10 +239,22 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 10,
   },
+  commentInputContainer: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  commentInput: {
+    flex: 1,
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    marginRight: 10,
+    paddingLeft: 10,
+    color: '#fff',
+  },
   commentContainer: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    marginBottom: 10,
   },
   commentAuthor: {
     fontWeight: 'bold',
@@ -179,19 +262,6 @@ const styles = StyleSheet.create({
   },
   commentText: {
     color: '#ccc',
-  },
-  commentInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  commentInput: {
-    flex: 1,
-    backgroundColor: '#333',
-    color: '#fff',
-    borderRadius: 5,
-    padding: 10,
-    marginRight: 10,
   },
 });
 

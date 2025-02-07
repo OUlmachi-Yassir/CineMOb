@@ -26,7 +26,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchFilms = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/films');
+        const response = await fetch('http://192.168.1.9:3000/api/films');
         const data = await response.json();
         setFilms(data);
       } catch (error) {
@@ -39,7 +39,7 @@ const HomePage = () => {
 
   const renderFilm = ({ item }: { item: Film }) => (
     <TouchableOpacity onPress={() => navigation.navigate('FilmDetails', { film: item })}>
-      <Image source={{ uri: `http://localhost:3000/${item.image}` }} style={styles.image} />
+      <Image source={{ uri: `http://192.168.1.9:3000/${item.image}` }} style={styles.image} />
     </TouchableOpacity>
   );
 
@@ -53,7 +53,7 @@ const HomePage = () => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {films.slice(0, 4).map((film) => (
           <TouchableOpacity key={film._id} onPress={() => navigation.navigate('FilmDetails', { film })}>
-            <Image source={{ uri: `http://localhost:3000/${film.image}` }} style={styles.carouselImage} />
+            <Image source={{ uri: `http://192.168.1.9:3000/${film.image}` }} style={styles.carouselImage} />
           </TouchableOpacity>
         ))}
       </ScrollView>
